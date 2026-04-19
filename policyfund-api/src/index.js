@@ -83,7 +83,10 @@ const CAT_PAGES = {
 export default {
   async fetch(request, env) {
     const url  = new URL(request.url);
-    const path = decodeURIComponent(url.pathname).replace(/\/$/, '') || '/';
+    // 슬래시를 제거한 순수 슬러그 추출 (앞뒤 슬래시 모두 제거)
+    let path = decodeURIComponent(url.pathname);
+    if (path.endsWith('/') && path.length > 1) path = path.slice(0, -1);
+    const slug = path.replace(/^\//, '');
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
@@ -94,7 +97,6 @@ export default {
     if (path.startsWith('/api/stats'))  return handleStats(env);
 
     // ── SSR 카테고리 페이지 ──
-    const slug = path.replace(/^\//, '');
     if (slug === '전문가-상담') return handleContactPage(env);
     if (CAT_PAGES[slug]) return handleCatPage(slug, env, url);
 
