@@ -4,18 +4,21 @@ export async function onRequest(context) {
 
 
   const ssrPaths = [
+    '/전체-정책자금',
     '/소상공인-정책자금',
     '/창업지원금-종류',
     '/중소기업-정책자금',
     '/고용지원금-신청방법',
     '/비사업자-서민금융',
+    '/전문가-상담',
   ];
 
 
   const isSsr = ssrPaths.includes(path)
     || path.startsWith('/funds/')
     || path.startsWith('/api/')
-    || path === '/sitemap.xml';
+    || path === '/sitemap.xml'
+    || (path !== '' && !path.includes('.') && !path.includes('_next')); // HTML 파일이나 에셋이 아닌 슬러그 경로 전체 허용
 
 
   if (isSsr) {
