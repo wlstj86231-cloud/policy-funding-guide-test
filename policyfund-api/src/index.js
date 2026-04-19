@@ -95,6 +95,7 @@ export default {
 
     // ── SSR 카테고리 페이지 ──
     const slug = path.replace(/^\//, '');
+    if (slug === '전문가-상담') return handleContactPage(env);
     if (CAT_PAGES[slug]) return handleCatPage(slug, env, url);
 
     // ── SSR 개별 상세 페이지 (slug 기반) ──
@@ -456,6 +457,86 @@ function json(data,status=200) {
 }
 function html(body) {
   return new Response(body,{headers:{'Content-Type':'text/html;charset=utf-8'}});
+}
+
+// ─────────────────────────────────────
+//  문의하기 (전문가 상담) 페이지
+// ─────────────────────────────────────
+async function handleContactPage(env) {
+  return html(pageShell({
+    title: `민간 컨설턴트 무료 상담 신청 | 정책자금 백과`,
+    desc: `정부 정책자금 신청을 위한 전문가의 1:1 맞춤 상담을 신청하세요.`,
+    keywords: `정책자금 상담,중소기업 컨설팅,소상공인 지원금 상담,창업지원금 신청`,
+    canonical: `${BASE}/전문가-상담/`,
+    faqSchema: '',
+    breadcrumb: [['홈', `${BASE}/`], ['전문가 상담', `${BASE}/전문가-상담/`]],
+    body: `
+      <div class="d-card">
+        <div class="d-top">
+          <div class="breadcrumb-nav"><a href="/">홈</a> › <span>전문가 상담 신청</span></div>
+          <div class="d-tags"><span class="tag tb">무료 상담</span><span class="tag ta">민간 컨설턴트</span></div>
+          <h1 class="d-title">정책자금 전문가 1:1 맞춤 상담 신청</h1>
+          <p class="d-desc">정부 지원금 신청이 막막하신가요? 내 사업장에 꼭 맞는 정책자금을 찾고 서류 준비부터 신청까지 도움을 드릴 수 있는 전문가 상담을 신청하세요.</p>
+        </div>
+        <div class="d-body">
+          <form id="contact-form" style="display:flex;flex-direction:column;gap:18px">
+            <div class="info-rows" style="border-top:none">
+              <div class="info-row"><span class="info-k">업체명/성함</span><input type="text" name="user_name" required placeholder="예: 홍길동 (또는 상호명)" style="flex:1;border:1.5px solid var(--line2);padding:9px 12px;border-radius:6px;font-family:inherit;font-size:14px"></div>
+              <div class="info-row"><span class="info-k">연락처</span><input type="tel" name="user_phone" required placeholder="예: 010-0000-0000" style="flex:1;border:1.5px solid var(--line2);padding:9px 12px;border-radius:6px;font-family:inherit;font-size:14px"></div>
+              <div class="info-row"><span class="info-k">사업장 위치</span><input type="text" name="user_loc" placeholder="예: 서울 강남구" style="flex:1;border:1.5px solid var(--line2);padding:9px 12px;border-radius:6px;font-family:inherit;font-size:14px"></div>
+              <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding-top:16px"><span class="info-k">문의 내용</span><textarea name="message" required placeholder="예: 소상공인 일반경영안정자금 신청 자격이 궁금합니다." style="width:100%;min-height:120px;border:1.5px solid var(--line2);padding:12px;border-radius:6px;font-family:inherit;font-size:14px;line-height:1.6;resize:none"></textarea></div>
+            </div>
+            <div style="background:var(--sur2);padding:14px;border-radius:8px;font-size:12px;color:var(--ink3);line-height:1.6">
+              <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+                <input type="checkbox" required style="margin-top:4px">
+                <span>(필수) 개인정보 수집 및 이용 동의: 원활한 상담을 위해 업체명, 연락처 등 기재된 정보를 민간 컨설턴트에게 제공하는 것에 동의합니다.</span>
+              </label>
+            </div>
+            <button type="submit" id="submit-btn" class="official-btn" style="border:none;cursor:pointer;justify-content:center;padding:16px">
+              <div class="ob-text">
+                <strong>상담 신청하기 ↗</strong>
+                <span>상담원이 확인 후 영업일 기준 1~2일 내로 연락드립니다.</span>
+              </div>
+            </button>
+          </form>
+        </div>
+      </div>
+      <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+      <script>
+        (function() {
+          emailjs.init("XvEpYnrVRgnYgXPId");
+        })();
+        
+        document.getElementById('contact-form').onsubmit = function(e) {
+          e.preventDefault();
+          const btn = document.getElementById('submit-btn');
+          const btnTxt = btn.querySelector('strong');
+          
+          btn.style.opacity = '0.7';
+          btn.style.pointerEvents = 'none';
+          btnTxt.innerText = '신청 정보 전송 중...';
+          
+          emailjs.send("service_n9kkhv6", "template_0dr0pa9", {
+            from_name: this.user_name.value,
+            phone: this.user_phone.value,
+            location: this.user_loc.value,
+            message: this.message.value,
+            to_email: "consultingjinjeong@gmail.com"
+          })
+          .then(function() {
+            alert('상담 신청이 완료되었습니다. 곧 연락드리겠습니다!');
+            location.href = '/';
+          }, function(error) {
+            alert('죄송합니다. 오류가 발생했습니다. 다시 시도해 주세요.');
+            console.error('EmailJS Error:', error);
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            btnTxt.innerText = '상담 신청하기 ↗';
+          });
+        };
+      </script>
+    `
+  }));
 }
 
 // ─────────────────────────────────────
