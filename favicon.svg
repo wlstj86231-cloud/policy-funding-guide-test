@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- 배경 -->
+  <rect width="32" height="32" rx="6" fill="#0f172a"/>
+  <!-- 책 왼쪽 페이지 -->
+  <path d="M16 8 L5 10 L5 24 L16 22 Z" fill="#1a56db"/>
+  <!-- 책 오른쪽 페이지 -->
+  <path d="M16 8 L27 10 L27 24 L16 22 Z" fill="#2563eb"/>
+  <!-- 책 척추 -->
+  <rect x="14.5" y="8" width="3" height="14" rx="1.5" fill="#93c5fd"/>
+  <!-- 책 하단 그림자 라인 -->
+  <path d="M5 24 L16 22 L27 24" fill="none" stroke="#1e3a8a" stroke-width="1.5"/>
+</svg>
