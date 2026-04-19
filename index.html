@@ -147,7 +147,34 @@ header{background:var(--white);border-bottom:1px solid var(--line);position:stic
   </aside>
 </div>
 <script>
-function sv(v){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('main-view').style.display=v==='main'?'block':'none';document.getElementById('region-view').style.display=v==='region'?'block':'none';if(v==='region'){document.getElementById('t-region').classList.add('on');rg();}window.scrollTo({top:0,behavior:'smooth'});}
+window.addEventListener('DOMContentLoaded', () => {
+  const p = window.location.pathname;
+  if (p !== '/' && p !== '/index.html') {
+    document.getElementById('main-view').style.display = 'none';
+  }
+  if (p.includes('region')) sv('region');
+});
+
+function sv(v){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  const mainView = document.getElementById('main-view');
+  const regionView = document.getElementById('region-view');
+  
+  if (v === 'main') {
+    if (window.location.pathname !== '/') {
+      location.href = '/';
+      return;
+    }
+    mainView.style.display = 'block';
+    regionView.style.display = 'none';
+  } else {
+    mainView.style.display = 'none';
+    regionView.style.display = 'block';
+    document.getElementById('t-region').classList.add('on');
+    rg();
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 function rg(){const g=document.getElementById('rgrid');if(!g||g.dataset.done)return;g.dataset.done=1;const R=[['서울','서울특별시'],['경기','경기도'],['인천','인천광역시'],['부산','부산광역시'],['대구','대구광역시'],['광주','광주광역시'],['대전','대전광역시'],['울산','울산광역시'],['세종','세종특별자치시'],['강원','강원특별자치도'],['충북','충청북도'],['충남','충청남도'],['전북','전북특별자치도'],['전남','전라남도'],['경북','경상북도'],['경남','경상남도'],['제주','제주특별자치도']];const T=[['전체 정책자금','정책자금','pri'],['도소매·유통','도소매-유통-정책자금',''],['건설업','건설업-정책자금',''],['간병·돌봄','간병-돌봄-창업지원금',''],['청년창업','청년창업-지원금',''],['여성창업','여성창업-지원금',''],['폐업 후 재기','폐업후재기-지원금',''],['시니어창업','시니어창업-지원금','']];g.innerHTML=R.map(([n,f])=>'<div class="rcard"><div class="rcard-name">'+n+'</div><div class="rcard-full">'+f+'</div><div class="rtypes">'+T.map(([l,s,c])=>'<a href="/'+n+'-'+s+'/" class="rtype '+c+'">'+l+'</a>').join('')+'</div></div>').join('');}
 function doSearch(){const q=document.getElementById('srch').value.trim();if(q)location.href='/전체-정책자금/?q='+encodeURIComponent(q);}
 </script>
