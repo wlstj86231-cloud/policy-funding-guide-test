@@ -22,7 +22,9 @@ export async function onRequest(context) {
 
 
   if (isSsr) {
-    return context.env.worker.fetch(context.request);
+    const response = await context.env.worker.fetch(context.request);
+    // 워커의 응답을 그대로 반환하여 정적 index.html이 개입하지 못하게 함
+    return new Response(response.body, response);
   }
 
 
