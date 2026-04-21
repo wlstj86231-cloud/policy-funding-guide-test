@@ -119,6 +119,11 @@ header{background:var(--white);border-bottom:1px solid var(--line);position:stic
       <div id="region-loading" style="display:none; text-align:center; padding:40px; color:var(--ink3);">데이터를 불러오는 중입니다...</div>
       <div id="region-results" style="margin-top:24px;"></div>
     </div>
+    <div id="category-view" style="display:none;">
+      <div class="rh"><h2 id="cv-title">정책자금 검색 결과</h2><p>해당 카테고리의 최신 정책자금 정보입니다.</p></div>
+      <div id="category-loading" style="display:none; text-align:center; padding:40px; color:var(--ink3);">데이터를 불러오는 중입니다...</div>
+      <div id="category-results" style="margin-top:24px;"></div>
+    </div>
   </main>
   <aside class="sb">
     <div class="sb-box">
@@ -151,10 +156,36 @@ header{background:var(--white);border-bottom:1px solid var(--line);position:stic
 <script>
 window.addEventListener('DOMContentLoaded', () => {
   const p = window.location.pathname;
-  if (p !== '/' && p !== '/index.html') {
+  const decoded = decodeURIComponent(p);
+  
+  // 탭 활성화 상태 변경
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.remove('on');
+    const href = t.getAttribute('href');
+    if (href !== '/' && decoded.includes(href.replace(/\//g, ''))) {
+      t.classList.add('on');
+    }
+  });
+
+  if (p === '/' || p === '/index.html' || p === '') {
+    document.getElementById('main-view').style.display = 'block';
+    document.getElementById('region-view').style.display = 'none';
+    document.getElementById('category-view').style.display = 'none';
+  } else if (p.includes('region')) {
+    sv('region');
+  } else {
+    // 카테고리 뷰 로드
     document.getElementById('main-view').style.display = 'none';
+    document.getElementById('region-view').style.display = 'none';
+    document.getElementById('category-view').style.display = 'block';
+    
+    let cateName = decoded.replace(/\//g, '').split('-')[0];
+    if (cateName === '전체') cateName = '';
+    if (cateName === '창업지원금') cateName = '창업';
+    
+    document.getElementById('cv-title').innerText = (cateName || '전체') + ' 정책자금 검색 결과';
+    fetchCategoryData(cateName);
   }
-  if (p.includes('region')) sv('region');
 });
 
 function sv(v){
@@ -224,6 +255,40 @@ async function fetchRegionData(region) {
         `).join('');
     } else {
       results.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink3);">현재 해당 지역에 진행 중인 주요 정책자금이 없습니다.</div>`;
+    }
+  } catch (e) {
+    loading.style.display = 'none';
+    results.innerHTML = `<div style="text-align:center; padding:20px; color:red;">데이터를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.</div>`;
+  }
+}
+
+async function fetchCategoryData(cate) {
+  const loading = document.getElementById('category-loading');
+  const results = document.getElementById('category-results');
+  
+  loading.style.display = 'block';
+  results.innerHTML = '';
+  
+  try {
+    const res = await fetch(`https://bizinfotest.wlstj86231.workers.dev/?cate=${encodeURIComponent(cate)}&numOfRows=30`);
+    const data = await res.json();
+    loading.style.display = 'none';
+    
+    if (data.success && data.items.length > 0) {
+      results.innerHTML = `<div class="sec-label">검색 결과 (${data.items.length}건)</div>` + 
+        data.items.map(item => `
+          <a href="${item.url}" target="_blank" class="fund-item">
+            <div>
+              <div class="fund-tags"><span class="fund-tag">${item.org}</span></div>
+              <div class="fund-title">${item.title}</div>
+              <div class="fund-desc">${item.summary.substring(0, 80)}...</div>
+              <div class="fund-meta"><span>신청: <strong>${item.startDate} ~ ${item.endDate}</strong></span></div>
+            </div>
+            <span class="fund-link">자세히 보기 →</span>
+          </a>
+        `).join('');
+    } else {
+      results.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink3);">현재 진행 중인 주요 정책자금이 없습니다.</div>`;
     }
   } catch (e) {
     loading.style.display = 'none';
