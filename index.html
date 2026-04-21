@@ -113,16 +113,9 @@ header{background:var(--white);border-bottom:1px solid var(--line);position:stic
       <a href="/고용지원금-신청방법/" class="fund-item"><div><div class="fund-tags"><span class="fund-tag">고용</span><span class="fund-tag">고용노동부</span></div><div class="fund-title">고용 · 일자리 지원금</div><div class="fund-desc">직원 채용, 고용유지, 청년 고용 장려금 등 사업주 지원금</div><div class="fund-meta"><span>지원 <strong>월 최대 100만원</strong></span></div></div><span class="fund-link">자세히 보기 →</span></a>
       <a href="/비사업자-서민금융/" class="fund-item"><div><div class="fund-tags"><span class="fund-tag">서민금융</span><span class="fund-tag">서민금융진흥원</span></div><div class="fund-title">비사업자 · 서민금융</div><div class="fund-desc">사업자 등록 없이도 받을 수 있는 저금리 생활자금 및 서민대출</div><div class="fund-meta"><span>한도 <strong>최대 2천만원</strong></span><span>금리 <strong>연 2~4.5%</strong></span></div></div><span class="fund-link">자세히 보기 →</span></a>
     </div>
-    <div id="region-view">
+    <div id="region-view" style="display:none;">
       <div class="rh"><h2>지역별 정책자금</h2><p>내 사업장 지역을 선택하면 해당 지역 정책자금과 지원기관 정보를 볼 수 있습니다.</p></div>
       <div class="rgrid" id="rgrid"></div>
-      <div id="region-loading" style="display:none; text-align:center; padding:40px; color:var(--ink3);">데이터를 불러오는 중입니다...</div>
-      <div id="region-results" style="margin-top:24px;"></div>
-    </div>
-    <div id="category-view" style="display:none;">
-      <div class="rh"><h2 id="cv-title">정책자금 검색 결과</h2><p>해당 카테고리의 최신 정책자금 정보입니다.</p></div>
-      <div id="category-loading" style="display:none; text-align:center; padding:40px; color:var(--ink3);">데이터를 불러오는 중입니다...</div>
-      <div id="category-results" style="margin-top:24px;"></div>
     </div>
   </main>
   <aside class="sb">
@@ -167,24 +160,79 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const mainView = document.getElementById('main-view');
+  const regionView = document.getElementById('region-view');
+
   if (p === '/' || p === '/index.html' || p === '') {
-    document.getElementById('main-view').style.display = 'block';
-    document.getElementById('region-view').style.display = 'none';
-    document.getElementById('category-view').style.display = 'none';
+    // 랜딩 페이지 (메인)
+    mainView.style.display = 'block';
+    regionView.style.display = 'none';
   } else if (p.includes('region')) {
-    sv('region');
+    // 지역 선택 그리드 뷰
+    mainView.style.display = 'none';
+    regionView.style.display = 'block';
+    rg();
   } else {
-    // 카테고리 뷰 로드
-    document.getElementById('main-view').style.display = 'none';
-    document.getElementById('region-view').style.display = 'none';
-    document.getElementById('category-view').style.display = 'block';
+    // 특정 카테고리 또는 지역 클릭 시 (원본의 아름다운 랜딩 뷰 유지)
+    mainView.style.display = 'block';
+    regionView.style.display = 'none';
     
-    let cateName = decoded.replace(/\//g, '').split('-')[0];
-    if (cateName === '전체') cateName = '';
-    if (cateName === '창업지원금') cateName = '창업';
+    // URL에서 키워드 추출
+    let keyword = decoded.replace(/\//g, '').split('-')[0];
+    if (keyword === '전체') keyword = '';
+    if (keyword === '창업지원금') keyword = '창업';
     
-    document.getElementById('cv-title').innerText = (cateName || '전체') + ' 정책자금 검색 결과';
-    fetchCategoryData(cateName);
+    // 1. Intro Box 디자인을 해당 키워드 맞춤형으로 우아하게 변경
+    const introH1 = mainView.querySelector('.intro-box h1');
+    const introP = mainView.querySelector('.intro-box p');
+    const secLabel = mainView.querySelector('.sec-label');
+    
+    if (keyword) {
+      introH1.innerHTML = `${keyword} 전용<br>정부 지원금 한눈에 보기`;
+      introP.innerText = `소상공인시장진흥공단, 중소벤처기업진흥공단 등 정부 기관의 ${keyword} 맞춤형 정책자금 정보를 실시간으로 제공합니다. 지원 대상, 한도, 금리, 신청 방법까지 정리했습니다.`;
+      secLabel.innerText = `${keyword} 최신 지원 정보`;
+    } else {
+      secLabel.innerText = `전체 최신 지원 정보`;
+    }
+
+    // 2. 기존 정적 카드들을 싹 지우고 로딩 컨테이너 생성
+    mainView.querySelectorAll('.fund-item').forEach(item => item.remove());
+    
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = 'dynamic-loading';
+    loadingDiv.style.cssText = 'text-align:center; padding:50px; color:var(--ink3); font-size:14px;';
+    loadingDiv.innerText = '실시간 공공데이터를 불러오는 중입니다...';
+    secLabel.after(loadingDiv);
+
+    // 3. 백엔드 통신 (지역명인지 카테고리명인지 구분)
+    const isRegion = ['서울','경기','인천','부산','대구','광주','대전','울산','세종','강원','충북','충남','전북','전남','경북','경남','제주'].includes(keyword);
+    const apiParam = isRegion ? `region=${encodeURIComponent(keyword)}` : `cate=${encodeURIComponent(keyword)}&numOfRows=30`;
+    
+    fetch(`https://bizinfotest.wlstj86231.workers.dev/?${apiParam}`)
+      .then(res => res.json())
+      .then(data => {
+        loadingDiv.remove();
+        if (data.success && data.items.length > 0) {
+          const html = data.items.map(item => `
+            <a href="${item.url}" target="_blank" class="fund-item">
+              <div>
+                <div class="fund-tags"><span class="fund-tag">${item.org}</span></div>
+                <div class="fund-title">${item.title}</div>
+                <div class="fund-desc">${item.summary.substring(0, 80)}...</div>
+                <div class="fund-meta"><span>신청: <strong>${item.startDate} ~ ${item.endDate}</strong></span></div>
+              </div>
+              <span class="fund-link">자세히 보기 →</span>
+            </a>
+          `).join('');
+          secLabel.insertAdjacentHTML('afterend', html);
+        } else {
+          secLabel.insertAdjacentHTML('afterend', `<div style="text-align:center; padding:40px; color:var(--ink3); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; background: var(--white);">현재 모집 중인 공고가 없습니다.</div>`);
+        }
+      })
+      .catch(e => {
+        loadingDiv.innerText = '데이터를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.';
+        loadingDiv.style.color = 'red';
+      });
   }
 });
 
@@ -208,92 +256,14 @@ function sv(v){
   }
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
 function rg(){
   const g=document.getElementById('rgrid');
   if(!g||g.dataset.done)return;
   g.dataset.done=1;
   const R=[['서울','서울특별시'],['경기','경기도'],['인천','인천광역시'],['부산','부산광역시'],['대구','대구광역시'],['광주','광주광역시'],['대전','대전광역시'],['울산','울산광역시'],['세종','세종특별자치시'],['강원','강원특별자치도'],['충북','충청북도'],['충남','충청남도'],['전북','전북특별자치도'],['전남','전라남도'],['경북','경상북도'],['경남','경상남도'],['제주','제주특별자치도']];
-  
-  g.innerHTML=R.map(([n,f])=>`
-    <div class="rcard" style="cursor:pointer;" onclick="fetchRegionData('${n}')">
-      <div class="rcard-name">${n}</div>
-      <div class="rcard-full">${f}</div>
-      <div class="rtypes">
-        <span class="rtype pri">정책자금 확인</span>
-      </div>
-    </div>`).join('');
-}
-
-async function fetchRegionData(region) {
-  const loading = document.getElementById('region-loading');
-  const results = document.getElementById('region-results');
-  
-  // 모든 rcard 스타일 초기화 및 선택된 항목 강조
-  document.querySelectorAll('.rcard').forEach(c => c.style.borderColor = 'var(--line)');
-  event.currentTarget.style.borderColor = 'var(--blue)';
-  
-  loading.style.display = 'block';
-  results.innerHTML = '';
-  
-  try {
-    const res = await fetch(`https://bizinfotest.wlstj86231.workers.dev/?region=${encodeURIComponent(region)}`);
-    const data = await res.json();
-    loading.style.display = 'none';
-    
-    if (data.success && data.items.length > 0) {
-      results.innerHTML = `<div class="sec-label">${region} 지역 최신 정책자금 (${data.items.length}건)</div>` + 
-        data.items.map(item => `
-          <a href="${item.url}" target="_blank" class="fund-item">
-            <div>
-              <div class="fund-tags"><span class="fund-tag">${item.org}</span></div>
-              <div class="fund-title">${item.title}</div>
-              <div class="fund-desc">${item.summary.substring(0, 80)}...</div>
-              <div class="fund-meta"><span>신청: <strong>${item.startDate} ~ ${item.endDate}</strong></span></div>
-            </div>
-            <span class="fund-link">자세히 보기 →</span>
-          </a>
-        `).join('');
-    } else {
-      results.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink3);">현재 해당 지역에 진행 중인 주요 정책자금이 없습니다.</div>`;
-    }
-  } catch (e) {
-    loading.style.display = 'none';
-    results.innerHTML = `<div style="text-align:center; padding:20px; color:red;">데이터를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.</div>`;
-  }
-}
-
-async function fetchCategoryData(cate) {
-  const loading = document.getElementById('category-loading');
-  const results = document.getElementById('category-results');
-  
-  loading.style.display = 'block';
-  results.innerHTML = '';
-  
-  try {
-    const res = await fetch(`https://bizinfotest.wlstj86231.workers.dev/?cate=${encodeURIComponent(cate)}&numOfRows=30`);
-    const data = await res.json();
-    loading.style.display = 'none';
-    
-    if (data.success && data.items.length > 0) {
-      results.innerHTML = `<div class="sec-label">검색 결과 (${data.items.length}건)</div>` + 
-        data.items.map(item => `
-          <a href="${item.url}" target="_blank" class="fund-item">
-            <div>
-              <div class="fund-tags"><span class="fund-tag">${item.org}</span></div>
-              <div class="fund-title">${item.title}</div>
-              <div class="fund-desc">${item.summary.substring(0, 80)}...</div>
-              <div class="fund-meta"><span>신청: <strong>${item.startDate} ~ ${item.endDate}</strong></span></div>
-            </div>
-            <span class="fund-link">자세히 보기 →</span>
-          </a>
-        `).join('');
-    } else {
-      results.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink3);">현재 진행 중인 주요 정책자금이 없습니다.</div>`;
-    }
-  } catch (e) {
-    loading.style.display = 'none';
-    results.innerHTML = `<div style="text-align:center; padding:20px; color:red;">데이터를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.</div>`;
-  }
+  const T=[['전체 정책자금','정책자금','pri'],['도소매·유통','도소매-유통-정책자금',''],['건설업','건설업-정책자금',''],['간병·돌봄','간병-돌봄-창업지원금',''],['청년창업','청년창업-지원금',''],['여성창업','여성창업-지원금',''],['폐업 후 재기','폐업후재기-지원금',''],['시니어창업','시니어창업-지원금','']];
+  g.innerHTML=R.map(([n,f])=>'<div class="rcard"><div class="rcard-name">'+n+'</div><div class="rcard-full">'+f+'</div><div class="rtypes">'+T.map(([l,s,c])=>'<a href="/'+n+'-'+s+'/" class="rtype '+c+'">'+l+'</a>').join('')+'</div></div>').join('');
 }
 
 function doSearch(){const q=document.getElementById('srch').value.trim();if(q)location.href='/전체-정책자금/?q='+encodeURIComponent(q);}
