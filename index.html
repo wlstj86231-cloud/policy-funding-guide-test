@@ -162,7 +162,7 @@ window.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.remove('on');
     const href = t.getAttribute('href');
-    if (href !== '/' && decoded.includes(href.replace(/\//g, ''))) {
+    if (href && href !== '/' && decoded.includes(href.replace(/\//g, ''))) {
       t.classList.add('on');
     }
   });
