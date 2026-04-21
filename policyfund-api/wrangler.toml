@@ -1,8 +1,0 @@
-name = "guideonlytest"
-main = "src/index.js"
-compatibility_date = "2024-04-19"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "policy-funding-db-test"
-database_id = "bd4cc5b2-b877-4a1f-845f-71390825ab64" # 사용자의 실제 DB ID로 교체 필요
