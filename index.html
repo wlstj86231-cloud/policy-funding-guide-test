@@ -205,7 +205,7 @@ async function fetchRegionData(region) {
   results.innerHTML = '';
   
   try {
-    const res = await fetch(`https://bizinfo-proxy-test.wlstj86231.workers.dev/?region=${encodeURIComponent(region)}`);
+    const res = await fetch(`https://bizinfotest.wlstj86231.workers.dev/?region=${encodeURIComponent(region)}`);
     const data = await res.json();
     loading.style.display = 'none';
     
