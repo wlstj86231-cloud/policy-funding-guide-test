@@ -1,15 +1,70 @@
 // ================================================================
 //  정책자금 백과 — Cloudflare Workers SSR + API
-//  URL 구조: /소상공인-일반경영안정자금/ (slug 기반)
 // ================================================================
 
 const BASE = 'https://policyfundpedia.com';
+const GOV_API_KEY = 'a4be53c2ebf7c2991ce035b4e42f9ca455accee48ceba9c1d01bf3d3fcf58e1d';
+const GOV_API_URL = 'https://apis.data.go.kr/1421000/mssBizService_v2/getbizList_v2';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
+
+// ── 정부 API 연동 헬퍼 ──
+async function fetchGovFunds(cat = '', q = '', region = '') {
+  try {
+    const params = new URLSearchParams({
+      serviceKey: GOV_API_KEY,
+      numOfRows: '30',
+      pageNo: '1'
+    });
+    if (cat) params.append('cate', cat);
+    
+    const resp = await fetch(`${GOV_API_URL}?${params.toString()}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const xml = await resp.text();
+    
+    const getVal = (str, tag) => {
+      const m = str.match(new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([^<]*)<\\/${tag}>`));
+      return m ? (m[1] !== undefined ? m[1] : m[2] || '') : '';
+    };
+
+    const blocks = xml.split('<item>').slice(1);
+    return blocks.map(block => {
+      const title = getVal(block, 'title').replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+      const summary = getVal(block, 'dataContents').replace(/<!\[CDATA\[|\]\]>/g, '').trim();
+      const org = getVal(block, 'writerName').trim();
+      const viewUrl = getVal(block, 'viewUrl').trim();
+      
+      // 디자인 유지를 위한 정보 추출 (한도, 금리 등)
+      const limMatch = summary.match(/최대\s*([\d,]+[억만]원)/) || summary.match(/([\d,]+[억만]원)\s*이내/);
+      const rateMatch = summary.match(/(\d+\.?\d*%)/) || summary.match(/(연\s*\d+\.?\d*)/);
+      
+      const slug = encodeURIComponent(title.slice(0, 20).replace(/\s+/g, '-'));
+
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        title,
+        slug,
+        org: org || '정부기관',
+        excerpt: summary.slice(0, 100) + '...',
+        detail: summary,
+        lim: limMatch ? limMatch[1] : '상세문의',
+        rate: rateMatch ? rateMatch[0] : '저금리',
+        cat: cat || '정책자금',
+        tags: [{t: cat || '공고', c: 'tb'}, {t: '실시간', c: 'tg'}],
+        agency: viewUrl,
+        agency_name: '기업마당'
+      };
+    }).filter(f => !q || f.title.includes(q) || f.detail.includes(q));
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+}
 
 const CAT_PAGES = {
     '전체-정책자금': {cat:null,title:'정책자금 전체 목록 2026',desc:'소상공인·창업·중소기업·고용·서민금융 등 정부 정책자금 전체 목록입니다.',h1:'정부 정책자금 전체 목록',keywords:'정책자금,정부지원금,소상공인 대출,창업자금,중소기업 대출',intro:'소상공인, 예비창업자, 중소기업, 고용주, 비사업자를 위한 정부 정책자금 전체 목록입니다.',faq:[]},
@@ -112,8 +167,11 @@ export default {
 
     // slug URL로 직접 접근
     if (slug && !slug.includes('/')) {
-      const row = await env.DB.prepare('SELECT * FROM funds WHERE slug=?').bind(slug).first();
-      if (row) return handleDetailPage(parseRow(row), env);
+      // 실시간 API에서 해당 슬러그(제목)를 포함하는 항목 검색
+      const q = decodeURIComponent(slug).replace(/-/g, ' ');
+      const items = await fetchGovFunds('', q);
+      const row = items.find(f => f.slug === slug) || items[0];
+      if (row) return handleDetailPage(row, env);
     }
 
     // ── 지역별 페이지 (region_pages DB) ──
@@ -131,9 +189,11 @@ export default {
 //  카테고리 SSR 페이지
 // ─────────────────────────────────────
 async function handleCatPage(slug, env, url) {
-  const meta  = CAT_PAGES[slug];
-    const q=(url.searchParams?.get('q')||'').trim();const like='%'+q+'%';const funds=q?(meta.cat?await env.DB.prepare('SELECT * FROM funds WHERE cat=? AND (title LIKE ? OR excerpt LIKE ?) ORDER BY id').bind(meta.cat,like,like).all():await env.DB.prepare('SELECT * FROM funds WHERE (title LIKE ? OR excerpt LIKE ?) ORDER BY id').bind(like,like).all()):(meta.cat?await env.DB.prepare('SELECT * FROM funds WHERE cat=? ORDER BY id').bind(meta.cat).all():await env.DB.prepare('SELECT * FROM funds ORDER BY id').all());const regionRows=q&&!meta.cat?(await env.DB.prepare('SELECT slug,region,type_name,title,description FROM region_pages WHERE (region LIKE ? OR title LIKE ? OR type_name LIKE ?) ORDER BY region,type LIMIT 20').bind(like,like,like).all()).results||[]:[];
-  const items = (funds.results || []).map(parseRow);
+  const meta = CAT_PAGES[slug];
+  const q = (url.searchParams?.get('q') || '').trim();
+  
+  // D1 대신 실시간 API 호출
+  const items = await fetchGovFunds(meta.cat, q);
 
   const faqSchema = meta.faq.map(([q,a]) =>
     `{"@type":"Question","name":"${esc(q)}","acceptedAnswer":{"@type":"Answer","text":"${esc(a)}"}}`
@@ -192,39 +252,39 @@ async function handleCatPage(slug, env, url) {
 async function handleDetailPage(f, env) {
   const catSlug = Object.entries(CAT_PAGES).find(([,m])=>m.cat===f.cat)?.[0]||'';
 
-  const related = await env.DB.prepare(
-    'SELECT id,title,org,tags,slug FROM funds WHERE cat=? AND id!=? LIMIT 4'
-  ).bind(f.cat, f.id).all();
+  const related = await fetchGovFunds(f.cat);
 
-  const stepsHtml = (f.steps||[]).map((s,i)=>
-    `<div class="step-item"><span class="step-n">${i+1}</span><span class="step-t">${s}</span></div>`
+  const stepsHtml = `
+    <div class="step-item"><span class="step-n">1</span><span class="step-t">기업마당 공고 확인</span></div>
+    <div class="step-item"><span class="step-n">2</span><span class="step-t">지원 자격 및 구비서류 준비</span></div>
+    <div class="step-item"><span class="step-n">3</span><span class="step-t">공식 사이트(기관) 온라인 접수</span></div>
+    <div class="step-item"><span class="step-n">4</span><span class="step-t">심사 및 지원금 지급</span></div>
+  `;
+
+  const relatedHtml = (related || []).slice(0, 4).map(r => 
+    `<a href="/${r.slug}/" class="rel-card">
+      <span class="tag tb">${r.cat}</span>
+      <span class="rel-card-title">${r.title}</span>
+    </a>`
   ).join('');
 
-  const relatedHtml = (related.results||[]).map(r=>{
-    const tags = tryParse(r.tags,[]);
-    return `<a href="/${r.slug}/" class="rel-card">
-      <span class="tag ${tags[0]?.c||'tb'}">${tags[0]?.t||''}</span>
-      <span class="rel-card-title">${r.title}</span>
-    </a>`;
-  }).join('');
-
-  const faqSchema = `{"@type":"Question","name":"${esc(f.title)} 신청 방법은?","acceptedAnswer":{"@type":"Answer","text":"${esc(f.target_desc)}. 필요서류: ${esc(f.docs)}"}}`;
+  const faqSchema = `{"@type":"Question","name":"${esc(f.title)} 신청 방법은?","acceptedAnswer":{"@type":"Answer","text":"${esc(f.excerpt)}"}}`;
 
   return html(pageShell({
     title: `${f.title} | 정책자금 백과`,
-    desc: `${f.excerpt} 지원 대상: ${f.target_desc}. 한도: ${f.lim}. 금리: ${f.rate}.`,
-    keywords: `${f.title},${f.cat} 정책자금,${f.org},${(f.tags||[]).map(t=>t.t).join(',')}`,
+    desc: `${f.excerpt} 지원 한도: ${f.lim}. 금리: ${f.rate}.`,
+    keywords: `${f.title},${f.cat} 정책자금,${f.org}`,
     canonical: `${BASE}/${f.slug}/`, faqSchema,
-    breadcrumb: [['홈',`${BASE}/`],[f.cat,`${BASE}/${catSlug}/`],[f.title.split('—')[0].trim(),`${BASE}/${f.slug}/`]],
+    breadcrumb: [['홈',`${BASE}/`],[f.cat,`${BASE}/${catSlug}/`],[f.title.slice(0, 15).trim(),`${BASE}/${f.slug}/`]],
     body: `
       <div class="d-card">
         <div class="d-top">
           <div class="breadcrumb-nav">
-            <a href="/">홈</a> › <a href="/${catSlug}/">${f.cat}</a> › <span>${f.title.split('—')[0].trim()}</span>
+            <a href="/">홈</a> › <a href="/${catSlug}/">${f.cat}</a> › <span>${f.title.slice(0, 15).trim()}...</span>
           </div>
-          <div class="d-tags">${(f.tags||[]).map(t=>`<span class="tag ${t.c}">${t.t}</span>`).join('')}</div>
+          <div class="d-tags"><span class="tag tb">${f.cat}</span><span class="tag tg">실시간 공고</span></div>
           <h1 class="d-title">${f.title}</h1>
-          <p class="d-desc">${f.detail}</p>
+          <p class="d-desc">${f.excerpt}</p>
         </div>
         <div class="d-summary">
           <div class="d-si"><div class="d-sl">지원 한도</div><div class="d-sv">${f.lim}</div></div>
@@ -232,24 +292,26 @@ async function handleDetailPage(f, env) {
           <div class="d-si"><div class="d-sl">담당 기관</div><div class="d-sv ink">${f.org}</div></div>
         </div>
         <div class="d-body">
-          <div class="d-stitle">지원 내용</div>
+          <div class="d-stitle">지원 상세 내용</div>
           <div class="info-rows">
-            <div class="info-row"><span class="info-k">지원 대상</span><span class="info-v">${f.target_desc}</span></div>
-            <div class="info-row"><span class="info-k">지원 금액</span><span class="info-v">${f.amount_desc}</span></div>
-            <div class="info-row"><span class="info-k">금리·지원</span><span class="info-v">${f.rate_desc}</span></div>
-            <div class="info-row"><span class="info-k">지원 기간</span><span class="info-v">${f.period_desc}</span></div>
-            <div class="info-row"><span class="info-k">필요 서류</span><span class="info-v">${f.docs}</span></div>
+            <div class="info-row" style="flex-direction:column;align-items:flex-start;gap:8px;padding:20px 0">
+              <span class="info-k" style="width:100%;font-weight:700">사업 개요</span>
+              <span class="info-v" style="font-size:14px;line-height:1.8;color:var(--ink2)">${f.detail.replace(/\n/g, '<br>')}</span>
+            </div>
+            <div class="info-row"><span class="info-k">지원 한도</span><span class="info-v">${f.lim}</span></div>
+            <div class="info-row"><span class="info-k">지원 금리</span><span class="info-v">${f.rate}</span></div>
+            <div class="info-row"><span class="info-k">주관 기관</span><span class="info-v">${f.org}</span></div>
           </div>
-          <div class="d-stitle">신청 절차</div>
+          <div class="d-stitle">신청 절차 안내</div>
           <div class="step-list">${stepsHtml}</div>
           <a class="official-btn" href="${f.agency}" target="_blank" rel="noopener">
             <div class="ob-text">
-              <strong>${f.agency_name} 공식 사이트에서 신청하기 ↗</strong>
-              <span>${f.agency_note}</span>
+              <strong>기업마당(공식) 공고 확인하기 ↗</strong>
+              <span>해당 공고의 공식 사이트로 이동하여 신청을 진행하세요.</span>
             </div>
           </a>
         </div>
-        ${relatedHtml?`<div class="related-sec"><div class="related-title">같은 카테고리 다른 정보</div><div class="rel-cards">${relatedHtml}</div></div>`:''}
+        ${relatedHtml?`<div class="related-sec"><div class="related-title">같은 카테고리 실시간 공고</div><div class="rel-cards">${relatedHtml}</div></div>`:''}
       </div>`
   }));
 }

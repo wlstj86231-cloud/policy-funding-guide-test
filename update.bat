@@ -1,10 +1,15 @@
 @echo off
-set GIT_PATH=C:\Users\Administrator\.gemini\antigravity\scratch\mingit\cmd\git.exe
+chcp 65001 > nul
+echo 🚀 웹사이트 변경사항을 깃허브에 전송합니다...
+
 echo [1/3] 변경사항 감지 중...
-%GIT_PATH% add .
+git add .
+
 echo [2/3] 업데이트 기록 중...
-%GIT_PATH% commit -m "Auto-update: %date% %time%"
+git commit -m "Auto-update: %date% %time%"
+
 echo [3/3] 깃허브로 전송 중...
-%GIT_PATH% push origin master --force
-echo 완료되었습니다!
+git push origin main
+
+echo ✅ 전송이 완료되었습니다! 창을 닫아도 좋습니다.
 pause

@@ -116,6 +116,8 @@ header{background:var(--white);border-bottom:1px solid var(--line);position:stic
     <div id="region-view">
       <div class="rh"><h2>지역별 정책자금</h2><p>내 사업장 지역을 선택하면 해당 지역 정책자금과 지원기관 정보를 볼 수 있습니다.</p></div>
       <div class="rgrid" id="rgrid"></div>
+      <div id="region-loading" style="display:none; text-align:center; padding:40px; color:var(--ink3);">데이터를 불러오는 중입니다...</div>
+      <div id="region-results" style="margin-top:24px;"></div>
     </div>
   </main>
   <aside class="sb">
@@ -175,7 +177,60 @@ function sv(v){
   }
   window.scrollTo({top:0,behavior:'smooth'});
 }
-function rg(){const g=document.getElementById('rgrid');if(!g||g.dataset.done)return;g.dataset.done=1;const R=[['서울','서울특별시'],['경기','경기도'],['인천','인천광역시'],['부산','부산광역시'],['대구','대구광역시'],['광주','광주광역시'],['대전','대전광역시'],['울산','울산광역시'],['세종','세종특별자치시'],['강원','강원특별자치도'],['충북','충청북도'],['충남','충청남도'],['전북','전북특별자치도'],['전남','전라남도'],['경북','경상북도'],['경남','경상남도'],['제주','제주특별자치도']];const T=[['전체 정책자금','정책자금','pri'],['도소매·유통','도소매-유통-정책자금',''],['건설업','건설업-정책자금',''],['간병·돌봄','간병-돌봄-창업지원금',''],['청년창업','청년창업-지원금',''],['여성창업','여성창업-지원금',''],['폐업 후 재기','폐업후재기-지원금',''],['시니어창업','시니어창업-지원금','']];g.innerHTML=R.map(([n,f])=>'<div class="rcard"><div class="rcard-name">'+n+'</div><div class="rcard-full">'+f+'</div><div class="rtypes">'+T.map(([l,s,c])=>'<a href="/'+n+'-'+s+'/" class="rtype '+c+'">'+l+'</a>').join('')+'</div></div>').join('');}
+function rg(){
+  const g=document.getElementById('rgrid');
+  if(!g||g.dataset.done)return;
+  g.dataset.done=1;
+  const R=[['서울','서울특별시'],['경기','경기도'],['인천','인천광역시'],['부산','부산광역시'],['대구','대구광역시'],['광주','광주광역시'],['대전','대전광역시'],['울산','울산광역시'],['세종','세종특별자치시'],['강원','강원특별자치도'],['충북','충청북도'],['충남','충청남도'],['전북','전북특별자치도'],['전남','전라남도'],['경북','경상북도'],['경남','경상남도'],['제주','제주특별자치도']];
+  
+  g.innerHTML=R.map(([n,f])=>`
+    <div class="rcard" style="cursor:pointer;" onclick="fetchRegionData('${n}')">
+      <div class="rcard-name">${n}</div>
+      <div class="rcard-full">${f}</div>
+      <div class="rtypes">
+        <span class="rtype pri">정책자금 확인</span>
+      </div>
+    </div>`).join('');
+}
+
+async function fetchRegionData(region) {
+  const loading = document.getElementById('region-loading');
+  const results = document.getElementById('region-results');
+  
+  // 모든 rcard 스타일 초기화 및 선택된 항목 강조
+  document.querySelectorAll('.rcard').forEach(c => c.style.borderColor = 'var(--line)');
+  event.currentTarget.style.borderColor = 'var(--blue)';
+  
+  loading.style.display = 'block';
+  results.innerHTML = '';
+  
+  try {
+    const res = await fetch(`https://bizinfo-proxy-test.wlstj86231.workers.dev/?region=${encodeURIComponent(region)}`);
+    const data = await res.json();
+    loading.style.display = 'none';
+    
+    if (data.success && data.items.length > 0) {
+      results.innerHTML = `<div class="sec-label">${region} 지역 최신 정책자금 (${data.items.length}건)</div>` + 
+        data.items.map(item => `
+          <a href="${item.url}" target="_blank" class="fund-item">
+            <div>
+              <div class="fund-tags"><span class="fund-tag">${item.org}</span></div>
+              <div class="fund-title">${item.title}</div>
+              <div class="fund-desc">${item.summary.substring(0, 80)}...</div>
+              <div class="fund-meta"><span>신청: <strong>${item.startDate} ~ ${item.endDate}</strong></span></div>
+            </div>
+            <span class="fund-link">자세히 보기 →</span>
+          </a>
+        `).join('');
+    } else {
+      results.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink3);">현재 해당 지역에 진행 중인 주요 정책자금이 없습니다.</div>`;
+    }
+  } catch (e) {
+    loading.style.display = 'none';
+    results.innerHTML = `<div style="text-align:center; padding:20px; color:red;">데이터를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.</div>`;
+  }
+}
+
 function doSearch(){const q=document.getElementById('srch').value.trim();if(q)location.href='/전체-정책자금/?q='+encodeURIComponent(q);}
 </script>
 </body>

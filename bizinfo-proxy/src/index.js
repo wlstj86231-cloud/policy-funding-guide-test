@@ -39,7 +39,23 @@ export default {
     const cate      = url.searchParams.get('cate')      || '';
     const region    = url.searchParams.get('region')    || '';
 
+    const cacheKey = request.url;
+
     try {
+      if (env.DB) {
+        const { results } = await env.DB.prepare('SELECT data, updated_at FROM policy_cache WHERE cache_key = ?').bind(cacheKey).all();
+        if (results && results.length > 0) {
+          const lastUpdate = new Date(results[0].updated_at + "Z").getTime(); // Append Z to ensure UTC parsing
+          const now = new Date().getTime();
+          // Cache valid for 12 hours (12 * 60 * 60 * 1000 = 43200000 ms)
+          if (now - lastUpdate < 43200000) {
+            return new Response(results[0].data, {
+              headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+            });
+          }
+        }
+      }
+
       const fetchRows = region ? '100' : numOfRows;
 
       const apiUrl = BASE_URL
@@ -82,6 +98,8 @@ export default {
         return { title, url: viewUrl, summary, startDate, endDate, org, category };
       }).filter(Boolean);
 
+      let finalJson = '';
+
       if (region && REGION_KEYWORDS[region]) {
         const keywords = REGION_KEYWORDS[region];
 
@@ -102,17 +120,21 @@ export default {
         }
 
         const sliced = filtered.slice(0, parseInt(numOfRows));
-        return new Response(JSON.stringify({
+        finalJson = JSON.stringify({
           success: true,
           totalCount: filtered.length,
           items: sliced,
           region,
-        }), {
-          headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
         });
+      } else {
+        finalJson = JSON.stringify({ success: true, totalCount, items });
       }
 
-      return new Response(JSON.stringify({ success: true, totalCount, items }), {
+      if (env.DB) {
+        await env.DB.prepare('INSERT OR REPLACE INTO policy_cache (cache_key, data, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)').bind(cacheKey, finalJson).run();
+      }
+
+      return new Response(finalJson, {
         headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
       });
 
