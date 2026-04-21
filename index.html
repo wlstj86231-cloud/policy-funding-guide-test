@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>정책자금 백과 | 소상공인·창업·중소기업 정부지원금 한눈에 보기</title>
 <meta name="description" content="소상공인 정책자금, 창업지원금, 중소기업 대출, 고용지원금 정보를 한눈에. 지원 대상부터 신청 방법까지 정리">
-<meta name="keywords" content="정책자금,소상공인 대출,창업지원금,중소기업 지원,정부보조금,고용지원금,서민금융">
 <style>
 @font-face{font-family:'A2z';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-4Regular.woff2') format('woff2');font-weight:400;font-display:swap}
 :root{--ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;--sur:#f8f7f5;--sur2:#f1efe9;--white:#fff;--line:rgba(15,23,42,.07);--line2:rgba(15,23,42,.13);--blue:#1a56db;--blue-bg:#eff5ff;--blue-t:#1e429f}
@@ -111,9 +110,9 @@ header{background:var(--white);border-bottom:1px solid var(--line);position:stic
       <a href="/창업지원금-종류/" class="fund-item"><div><div class="fund-tags"><span class="fund-tag">창업</span><span class="fund-tag">K-스타트업</span></div><div class="fund-title">창업 · 스타트업 지원금</div><div class="fund-desc">예비창업자부터 초기 창업자까지 창업지원금 종류 및 신청 방법</div><div class="fund-meta"><span>한도 <strong>최대 1억원</strong></span><span>금리 <strong>연 2~4%대</strong></span></div></div><span class="fund-link">자세히 보기 →</span></a>
       <a href="/중소기업-정책자금/" class="fund-item"><div><div class="fund-tags"><span class="fund-tag">중소기업</span><span class="fund-tag">중진공</span></div><div class="fund-title">중소기업 정책자금</div><div class="fund-desc">성장·혁신·수출 중소기업을 위한 저금리 정책자금 정보</div><div class="fund-meta"><span>한도 <strong>최대 30억원</strong></span><span>금리 <strong>연 2~4%대</strong></span></div></div><span class="fund-link">자세히 보기 →</span></a>
       <a href="/고용지원금-신청방법/" class="fund-item"><div><div class="fund-tags"><span class="fund-tag">고용</span><span class="fund-tag">고용노동부</span></div><div class="fund-title">고용 · 일자리 지원금</div><div class="fund-desc">직원 채용, 고용유지, 청년 고용 장려금 등 사업주 지원금</div><div class="fund-meta"><span>지원 <strong>월 최대 100만원</strong></span></div></div><span class="fund-link">자세히 보기 →</span></a>
-      <a href="/비사업자-서민금융/" class="fund-item"><div><div class="fund-tags"><span class="fund-tag">서민금융</span><span class="fund-tag">서민금융진흥원</span></div><div class="fund-title">비사업자 · 서민금융</div><div class="fund-desc">사업자 등록 없이도 받을 수 있는 저금리 생활자금 및 서민대출</div><div class="fund-meta"><span>한도 <strong>최대 2천만원</strong></span><span>금리 <strong>연 2~4.5%</strong></span></div></div><span class="fund-link">자세히 보기 →</span></a>
+      <a href="/비사업자-서민금융/" class="fund-item"><div><div class="fund-tags"><span class="fund-tag">서민금융</span><span class="fund-tag">서민금융진흥원</span></div><div class="fund-title">비사업자 · 서민금융</div><div class="fund-desc">사업자 등록 없이도 받을 수 있는 저금리 생활자금 및 서민대출</div><div class="fund-meta"><span>한도 <strong>���대 2천만원</strong></span><span>금리 <strong>연 2~4.5%</strong></span></div></div><span class="fund-link">자세히 보기 →</span></a>
     </div>
-    <div id="region-view" style="display:none;">
+    <div id="region-view">
       <div class="rh"><h2>지역별 정책자금</h2><p>내 사업장 지역을 선택하면 해당 지역 정책자금과 지원기관 정보를 볼 수 있습니다.</p></div>
       <div class="rgrid" id="rgrid"></div>
     </div>
@@ -147,126 +146,169 @@ header{background:var(--white);border-bottom:1px solid var(--line);position:stic
   </aside>
 </div>
 <script>
-window.addEventListener('DOMContentLoaded', () => {
-  const p = window.location.pathname;
-  const decoded = decodeURIComponent(p);
-  
-  // 탭 활성화 상태 변경
-  document.querySelectorAll('.tab').forEach(t => {
-    t.classList.remove('on');
-    const href = t.getAttribute('href');
-    if (href && href !== '/' && decoded.includes(href.replace(/\//g, ''))) {
-      t.classList.add('on');
-    }
-  });
-
-  const mainView = document.getElementById('main-view');
-  const regionView = document.getElementById('region-view');
-
-  if (p === '/' || p === '/index.html' || p === '') {
-    // 랜딩 페이지 (메인)
-    mainView.style.display = 'block';
-    regionView.style.display = 'none';
-  } else if (p.includes('region')) {
-    // 지역 선택 그리드 뷰
-    mainView.style.display = 'none';
-    regionView.style.display = 'block';
-    rg();
-  } else {
-    // 특정 카테고리 또는 지역 클릭 시 (원본의 아름다운 랜딩 뷰 유지)
-    mainView.style.display = 'block';
-    regionView.style.display = 'none';
-    
-    // URL에서 키워드 추출
-    let keyword = decoded.replace(/\//g, '').split('-')[0];
-    if (keyword === '전체') keyword = '';
-    if (keyword === '창업지원금') keyword = '창업';
-    
-    // 1. Intro Box 디자인을 해당 키워드 맞춤형으로 우아하게 변경
-    const introH1 = mainView.querySelector('.intro-box h1');
-    const introP = mainView.querySelector('.intro-box p');
-    const secLabel = mainView.querySelector('.sec-label');
-    
-    if (keyword) {
-      introH1.innerHTML = `${keyword} 전용<br>정부 지원금 한눈에 보기`;
-      introP.innerText = `소상공인시장진흥공단, 중소벤처기업진흥공단 등 정부 기관의 ${keyword} 맞춤형 정책자금 정보를 실시간으로 제공합니다. 지원 대상, 한도, 금리, 신청 방법까지 정리했습니다.`;
-      secLabel.innerText = `${keyword} 최신 지원 정보`;
-    } else {
-      secLabel.innerText = `전체 최신 지원 정보`;
-    }
-
-    // 2. 기존 정적 카드들을 싹 지우고 로딩 컨테이너 생성
-    mainView.querySelectorAll('.fund-item').forEach(item => item.remove());
-    
-    const loadingDiv = document.createElement('div');
-    loadingDiv.id = 'dynamic-loading';
-    loadingDiv.style.cssText = 'text-align:center; padding:50px; color:var(--ink3); font-size:14px;';
-    loadingDiv.innerText = '실시간 공공데이터를 불러오는 중입니다...';
-    secLabel.after(loadingDiv);
-
-    // 3. 백엔드 통신 (지역명인지 카테고리명인지 구분)
-    const isRegion = ['서울','경기','인천','부산','대구','광주','대전','울산','세종','강원','충북','충남','전북','전남','경북','경남','제주'].includes(keyword);
-    const apiParam = isRegion ? `region=${encodeURIComponent(keyword)}` : `cate=${encodeURIComponent(keyword)}&numOfRows=30`;
-    
-    fetch(`https://bizinfotest.wlstj86231.workers.dev/?${apiParam}`)
-      .then(res => res.json())
-      .then(data => {
-        loadingDiv.remove();
-        if (data.success && data.items.length > 0) {
-          const html = data.items.map(item => `
-            <a href="${item.url}" target="_blank" class="fund-item">
-              <div>
-                <div class="fund-tags"><span class="fund-tag">${item.org}</span></div>
-                <div class="fund-title">${item.title}</div>
-                <div class="fund-desc">${item.summary.substring(0, 80)}...</div>
-                <div class="fund-meta"><span>신청: <strong>${item.startDate} ~ ${item.endDate}</strong></span></div>
-              </div>
-              <span class="fund-link">자세히 보기 →</span>
-            </a>
-          `).join('');
-          secLabel.insertAdjacentHTML('afterend', html);
-        } else {
-          secLabel.insertAdjacentHTML('afterend', `<div style="text-align:center; padding:40px; color:var(--ink3); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; background: var(--white);">현재 모집 중인 공고가 없습니다.</div>`);
-        }
-      })
-      .catch(e => {
-        loadingDiv.innerText = '데이터를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.';
-        loadingDiv.style.color = 'red';
-      });
-  }
-});
-
-function sv(v){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  const mainView = document.getElementById('main-view');
-  const regionView = document.getElementById('region-view');
-  
-  if (v === 'main') {
-    if (window.location.pathname !== '/') {
-      location.href = '/';
-      return;
-    }
-    mainView.style.display = 'block';
-    regionView.style.display = 'none';
-  } else {
-    mainView.style.display = 'none';
-    regionView.style.display = 'block';
-    document.getElementById('t-region').classList.add('on');
-    rg();
-  }
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function rg(){
-  const g=document.getElementById('rgrid');
-  if(!g||g.dataset.done)return;
-  g.dataset.done=1;
-  const R=[['서울','서울특별시'],['경기','경기도'],['인천','인천광역시'],['부산','부산광역시'],['대구','대구광역시'],['광주','광주광역시'],['대전','대전광역시'],['울산','울산광역시'],['세종','세종특별자치시'],['강원','강원특별자치도'],['충북','충청북도'],['충남','충청남도'],['전북','전북특별자치도'],['전남','전라남도'],['경북','경상북도'],['경남','경상남도'],['제주','제주특별자치도']];
-  const T=[['전체 정책자금','정책자금','pri'],['도소매·유통','도소매-유통-정책자금',''],['건설업','건설업-정책자금',''],['간병·돌봄','간병-돌봄-창업지원금',''],['청년창업','청년창업-지원금',''],['여성창업','여성창업-지원금',''],['폐업 후 재기','폐업후재기-지원금',''],['시니어창업','시니어창업-지원금','']];
-  g.innerHTML=R.map(([n,f])=>'<div class="rcard"><div class="rcard-name">'+n+'</div><div class="rcard-full">'+f+'</div><div class="rtypes">'+T.map(([l,s,c])=>'<a href="/'+n+'-'+s+'/" class="rtype '+c+'">'+l+'</a>').join('')+'</div></div>').join('');
-}
-
+function sv(v){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));document.getElementById('main-view').style.display=v==='main'?'block':'none';document.getElementById('region-view').style.display=v==='region'?'block':'none';if(v==='region'){document.getElementById('t-region').classList.add('on');rg();}window.scrollTo({top:0,behavior:'smooth'});}
+function rg(){const g=document.getElementById('rgrid');if(!g||g.dataset.done)return;g.dataset.done=1;const R=[['서울','서울특별시'],['경기','경기도'],['인천','인천광역시'],['부산','부산광역시'],['대구','대구광역시'],['광주','광주광역시'],['대전','대전광역시'],['울산','울산광역시'],['세종','세종특별자치시'],['강원','강원특별자치도'],['충북','충청북도'],['충남','충청남도'],['전북','전북특별자치도'],['전남','전라남도'],['경북','경상북도'],['경남','경상남도'],['제주','제주특별자치도']];const T=[['전체 정책자금','정책자금','pri'],['도소매·유통','도소매-유통-정책자금',''],['건설업','건설업-정책자금',''],['간병·돌봄','간병-돌봄-창업지원금',''],['청년창업','청년창업-지원금',''],['여성창업','여성창업-지원금',''],['폐업 후 재기','폐업후재���-지원금',''],['시니어창업','시니어창업-지원금','']];g.innerHTML=R.map(([n,f])=>'<div class="rcard"><div class="rcard-name">'+n+'</div><div class="rcard-full">'+f+'</div><div class="rtypes">'+T.map(([l,s,c])=>'<a href="/'+n+'-'+s+'/" class="rtype '+c+'">'+l+'</a>').join('')+'</div></div>').join('');}
 function doSearch(){const q=document.getElementById('srch').value.trim();if(q)location.href='/전체-정책자금/?q='+encodeURIComponent(q);}
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"fd7f3052c18149eb90c8415624913e85","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
-</html>
+</html><!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>정책자금 백과 | 소상공인·창업·중소기업 정부지원금 한눈에 보기</title>
+<meta name="description" content="소상공인 정책자금, 창업지원금, 중소기업 대출, 고용지원금 정보를 한눈에. 지원 대상부터 신청 방법까지 정리">
+<meta name="keywords" content="정책자금,소상공인 대출,창업지원금,중소기업 지원,정부보조금,고용지원금,서민금융">
+<style>
+@font-face{font-family:'A2z';src:url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-4Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+/* Worker 페이지와 동일한 CSS 변수 */
+:root{--ink:#0f172a;--ink2:#334155;--ink3:#64748b;--ink4:#94a3b8;--sur:#f8f7f5;--sur2:#f1efe9;--white:#fff;--line:rgba(15,23,42,.07);--line2:rgba(15,23,42,.13);--blue:#1a56db;--blue-bg:#eff5ff;--blue-t:#1e429f;--green-bg:#f0fdf4;--green-t:#166534;--amber-bg:#fffbeb;--amber-t:#92400e;--red-bg:#fff1f2;--red-t:#9f1239}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'A2z','Noto Sans KR',sans-serif;background:var(--sur);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.6}
+a{text-decoration:none;color:inherit}
+
+/* 헤더 — Worker와 동일: height:60px, padding:0 24px */
+header{background:var(--white);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:100}
+.h-top{max-width:1080px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:16px}
+.logo-main{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-.4px}
+.logo-main span{color:var(--blue)}
+.logo-sub{font-size:10px;color:var(--ink4);text-transform:uppercase;letter-spacing:.3px;display:block;margin-top:1px}
+.h-nav{display:flex;align-items:center;gap:2px;margin-left:auto}
+.h-nav a{font-size:13.5px;color:var(--ink3);padding:6px 10px;border-radius:6px;transition:all .13s}
+.h-nav a:hover{color:var(--ink);background:var(--sur2)}
+
+/* 검색바 — Worker 기존 것과 동일하게 */
+.h-search{position:relative;margin-left:auto}
+.h-search input{width:280px;height:36px;padding:0 40px 0 14px;border:1.5px solid var(--line2);border-radius:8px;font-size:13.5px;font-family:'A2z','Noto Sans KR',sans-serif;background:var(--white);color:var(--ink);outline:none;transition:border-color .15s}
+.h-search input:focus{border-color:var(--blue)}
+.h-search input::placeholder{color:var(--ink4)}
+.h-search button{position:absolute;right:0;top:0;height:36px;width:60px;background:var(--blue);border:none;border-radius:0 8px 8px 0;color:var(--white);font-size:13px;font-family:'A2z',sans-serif;font-weight:600;cursor:pointer;transition:background .13s}
+.h-search button:hover{background:var(--blue-t)}
+
+/* 탭바 — Worker .pnav와 동일 */
+.tabs{background:var(--white);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs-in{max-width:1080px;margin:0 auto;padding:0 24px;display:flex}
+.tab{font-size:14px;color:var(--ink3);padding:11px 15px;white-space:nowrap;border-bottom:2.5px solid transparent;cursor:pointer;user-select:none;flex-shrink:0;font-weight:400;transition:color .13s;display:block}
+.tab:hover{color:var(--ink)}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue);font-weight:600}
+
+/* 레이아웃 */
+.wrap{max-width:1080px;margin:0 auto;padding:28px 24px 80px;display:grid;grid-template-columns:1fr 280px;gap:40px;align-items:start}
+
+/* 인트로 박스 — 기존 페이지 d-card 스타일과 동일 */
+.intro-box{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:28px;margin-bottom:24px}
+.intro-tag{display:inline-block;font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-bg);padding:3px 10px;border-radius:4px;margin-bottom:12px}
+.intro-box h1{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.4px;margin-bottom:8px;line-height:1.38}
+.intro-box p{font-size:14px;color:var(--ink3);line-height:1.7;margin-bottom:18px}
+.intro-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn-pri{display:inline-block;background:var(--blue);color:var(--white);border:none;border-radius:6px;padding:9px 18px;font-size:13.5px;font-weight:600;font-family:'A2z',sans-serif;cursor:pointer;transition:background .13s}
+.btn-pri:hover{background:var(--blue-t)}
+.btn-sec{display:inline-block;background:var(--white);color:var(--ink2);border:1.5px solid var(--line2);border-radius:6px;padding:9px 18px;font-size:13.5px;cursor:pointer;transition:all .13s}
+.btn-sec:hover{border-color:var(--blue);color:var(--blue)}
+
+/* 섹션 라벨 */
+.sec-label{font-size:15px;font-weight:700;color:var(--ink2);margin-bottom:12px}
+
+/* 문서 카드 — 기존 .fcard-link 와 동일한 느낌 */
+.fund-item{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;transition:border-color .13s;margin-bottom:8px}
+.fund-item:hover{border-color:var(--line2);box-shadow:0 1px 6px rgba(15,23,42,.06)}
+.fund-tags{display:flex;gap:5px;margin-bottom:7px}
+.fund-tag{font-size:11px;background:var(--sur2);color:var(--ink3);border-radius:4px;padding:2px 8px;font-weight:400}
+.fund-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px;letter-spacing:-.2px}
+.fund-desc{font-size:13px;color:var(--ink3);line-height:1.5}
+.fund-meta{font-size:12px;color:var(--ink4);margin-top:7px}
+.fund-meta span{margin-right:14px}
+.fund-meta strong{color:var(--ink2);font-weight:600}
+.fund-link{font-size:13px;color:var(--blue);white-space:nowrap;flex-shrink:0;margin-left:20px;font-weight:500}
+
+/* 지역별 뷰 */
+#region-view{display:none}
+.rh{margin-bottom:20px}
+.rh h2{font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px;letter-spacing:-.3px}
+.rh p{font-size:13px;color:var(--ink3)}
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rcard{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:16px;transition:border-color .15s}
+.rcard:hover{border-color:var(--line2)}
+.rcard-name{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.rcard-full{font-size:11px;color:var(--ink4);margin-bottom:10px}
+.rtypes{display:flex;flex-wrap:wrap;gap:4px}
+.rtype{font-size:11.5px;border-radius:4px;padding:3px 9px;white-space:nowrap;border:1px solid var(--line);color:var(--ink3);transition:all .12s}
+.rtype:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.rtype.pri{background:var(--blue);color:var(--white);border-color:var(--blue);font-weight:600}
+.rtype.pri:hover{background:var(--blue-t)}
+
+/* 사이드바 — Worker 사이드바와 동일 */
+.sb{display:flex;flex-direction:column;gap:20px}
+.sb-box{background:var(--white);border:1px solid var(--line);border-radius:8px;padding:20px}
+.sb-title{font-size:14px;font-weight:700;color:var(--ink2);margin-bottom:12px}
+.sb-link{display:flex;justify-content:space-between;align-items:center;color:var(--ink3);font-size:13px;padding:7px 0;border-bottom:1px solid var(--line);transition:color .12s}
+.sb-link:last-child{border:none;padding-bottom:0}
+.sb-link:hover{color:var(--blue)}
+.sb-link-num{font-size:12px;color:var(--ink4)}
+.sb-tip{font-size:12px;color:var(--ink3);line-height:1.7;padding:6px 0;border-bottom:1px solid var(--line)}
+.sb-tip:last-child{border:none;padding-bottom:0}
+
+@media(max-width:860px){.wrap{grid-template-columns:1fr}.sb{display:none}.rgrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.rgrid{grid-template-columns:1fr}.wrap{padding:20px 16px 60px}.tabs-in{padding:0 16px}.h-search input{width:200px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="h-top">
+    <a href="/">
+      <div class="logo-main">정책자금 <span>백과</span></div>
+      <div class="logo-sub">Government Fund Guide</div>
+    </a>
+    <div class="h-search">
+      <input type="text" id="srch" placeholder="자금명, 업종, 키워드 검색..." onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()">검색</button>
+    </div>
+  </div>
+</header>
+<div class="tabs">
+  <div class="tabs-in">
+    <a href="/전체-정책자금/" class="tab">전체</a>
+    <a href="/소상공인-정책자금/" class="tab">소상공인</a>
+    <a href="/창업지원금-종류/" class="tab">창업 · 스타트업</a>
+    <a href="/중소기업-정책자금/" class="tab">중소기업</a>
+    <a href="/고용지원금-신청방법/" class="tab">고용 · 일자리</a>
+    <a href="/비사업자-서민금융/" class="tab">비사업자 · 서민금융</a>
+    <span class="tab" id="t-region" onclick="sv('region')">📍 지역별</span>
+  </div>
+</div>
+<div class="wrap">
+  <main>
+    <div id="main-view">
+      <div class="intro-box">
+        <span class="intro-tag">정책자금 정보</span>
+        <h1>소상공인·창업·중소기업<br>정부 지원금 한눈에 보기</h1>
+        <p>소상공인시장진흥공단, 중소벤처기업진흥공단 등 정부 기관의 정책자금 정보를 한 곳에 모았습니다. 지원 대상, 한도, 금리, 신청 방법까지 정리했습니다.</p>
+        <div class="intro-btns">
+          <a href="/전체-정책자금/" class="btn-pri">전체 정책자금 보기</a>
+          <span class="btn-sec" onclick="sv('region')">지역별로 찾기</span>
+        </div>
+      </div>
+      <div class="sec-label">카테고리별 지원 정보</div>
+      <a href="/소상공인-정책자금/" class="fund-item">
+        <div><div class="fund-tags"><span class="fund-tag">소상공인</span><span class="fund-tag">소진공</span></div><div class="fund-title">소상공인 정책자금</div><div class="fund-desc">운전자금·시설자금·재창업자금 등 소상공인 전용 정책자금 모음</div><div class="fund-meta"><span>한도 <strong>최대 1억원</strong></span><span>금리 <strong>연 2~3%대</strong></span></div></div>
+        <span class="fund-link">자세히 보기 →</span>
+      </a>
+      <a href="/창업지원금-종류/" class="fund-item">
+        <div><div class="fund-tags"><span class="fund-tag">창업</span><span class="fund-tag">K-스타트업</span></div><div class="fund-title">창업 · 스타트업 지원금</div><div class="fund-desc">예비창업자부터 초기 창업자까지 창업지원금 종류 및 신청 방법</div><div class="fund-meta"><span>한도 <strong>최대 1억원</strong></span><span>금리 <strong>연 2~4%대</strong></span></div></div>
+        <span class="fund-link">자세히 보기 →</span>
+      </a>
+      <a href="/중소기업-정책자금/" class="fund-item">
+        <div><div class="fund-tags"><span class="fund-tag">중소기업</span><span class="fund-tag">중진공</span></div><div class="fund-title">중소기업 정책자금</div><div class="fund-desc">성장·혁신·수출 중소기업을 위한 저금리 정책자금 정보</div><div class="fund-meta"><span>한도 <strong>최대 30억원</strong></span><span>금리 <strong>연 2~4%대</strong></span></div></div>
+        <span class="fund-link">자세히 보기 →</span>
+      </a>
+      <a href="/고용지원금-신청방법/" class="fund-item">
+        <div><div class="fund-tags"><span class="fund-tag">고용</span><span class="fund-tag">고용���동부</span></div><div class="fund-title">고용 · 일자리 지원금</div><div class="fund-desc">직원 채용, 고용유지, 청년 고용 장려금 등 사업주 지원금</div><div class="fund-meta"><span>지원 <strong>월 최대 100만원</strong></span></div></div>
+        <span class="fund-link">자세히 보기 →</span>
+      </a>
+      <a href="/비사업자-서민금융/" class="fund-item">
+        <div><div class="fund-tags"><span class="fund-tag">서민금융</span><span class="fund-tag">서민금융진흥원</span></div><div class="fund-title">비사업자 · 서민금융</div><div class="fund-desc">사업자 등록 없이도 받을 수 있는 저금리 생활자금 및 서민대출</div><div class="fund-meta"><span>한도 <strong>최대 2천만원</strong></span><span>금리 <strong>연 2~4.5%</strong></span></div></div>
+        <span class="fund-link">자세히 보기 →</span>
+      </a>
+    </div>
