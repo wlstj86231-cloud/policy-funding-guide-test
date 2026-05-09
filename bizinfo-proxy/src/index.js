@@ -1,4 +1,3 @@
-const API_KEY  = 'a4be53c2ebf7c2991ce035b4e42f9ca455accee48ceba9c1d01bf3d3fcf58e1d';
 const BASE_URL = 'https://apis.data.go.kr/1421000/mssBizService_v2/getbizList_v2';
 
 const REGION_KEYWORDS = {
@@ -38,6 +37,16 @@ export default {
     const pageNo    = url.searchParams.get('pageNo')    || '1';
     const cate      = url.searchParams.get('cate')      || '';
     const region    = url.searchParams.get('region')    || '';
+    const apiKey    = env.BIZINFO_API_KEY || env.API_KEY;
+
+    if (!apiKey) {
+      return new Response(JSON.stringify({
+        error: 'BIZINFO_API_KEY environment variable is required.'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS_HEADERS }
+      });
+    }
 
     const cacheKey = request.url;
 
@@ -59,7 +68,7 @@ export default {
       const fetchRows = region ? '100' : numOfRows;
 
       const apiUrl = BASE_URL
-        + '?serviceKey=' + API_KEY
+        + '?serviceKey=' + encodeURIComponent(apiKey)
         + '&numOfRows='  + fetchRows
         + '&pageNo='     + pageNo
         + (cate ? '&cate=' + encodeURIComponent(cate) : '');
